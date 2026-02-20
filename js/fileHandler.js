@@ -6,7 +6,7 @@
 const FileHandler = {
     /**
      * Extract zip file and return firmware files
-     * @param {File} file - Zip file to extract
+     * @param {File|ArrayBuffer} file - Zip file or ArrayBuffer to extract
      * @returns {Promise<Object>} Object containing firmware files
      */
     async extractZipFile(file) {

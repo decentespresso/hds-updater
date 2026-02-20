@@ -4,13 +4,21 @@
  */
 
 const App = {
+    // GitHub repo config
+    REPO_OWNER: 'decentespresso',
+    REPO_NAME: 'openscale',
+
     // Application state
     state: {
         firmwareFiles: null,
         connected: false,
         flashing: false,
         customOffsets: {},
-        advancedMode: false
+        advancedMode: false,
+        releases: [],
+        selectedRelease: null,
+        downloading: false,
+        firmwareSource: 'github'
     },
 
     // Initialize application
@@ -18,11 +26,22 @@ const App = {
         this.cacheElements();
         this.attachEventListeners();
         this.updateUI();
+        this.loadReleases();
     },
 
     // Cache DOM elements
     cacheElements() {
         this.elements = {
+            // Firmware source
+            sourceRadios: document.querySelectorAll('input[name="firmware-source"]'),
+            githubSource: document.getElementById('github-source'),
+            uploadSource: document.getElementById('upload-source'),
+            versionSelect: document.getElementById('version-select'),
+            assetSelect: document.getElementById('asset-select'),
+            assetGroup: document.getElementById('asset-group'),
+            downloadBtn: document.getElementById('download-btn'),
+            downloadStatus: document.getElementById('download-status'),
+
             // Upload element
             zipUpload: document.getElementById('zip-upload'),
 
@@ -50,6 +69,15 @@ const App = {
 
     // Attach event listeners
     attachEventListeners() {
+        // Firmware source toggle
+        this.elements.sourceRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => this.onSourceChange(e));
+        });
+
+        // GitHub release selection
+        this.elements.versionSelect.addEventListener('change', (e) => this.onVersionSelect(e));
+        this.elements.downloadBtn.addEventListener('click', () => this.onDownloadRelease());
+
         // Upload
         this.elements.zipUpload.addEventListener('change', (e) => this.onZipUpload(e));
 
@@ -75,6 +103,153 @@ const App = {
         this.elements.flashBtn.disabled = !this.state.connected ||
                                            !this.state.firmwareFiles ||
                                            this.state.flashing;
+    },
+
+    // Handle firmware source toggle
+    onSourceChange(e) {
+        this.state.firmwareSource = e.target.value;
+        if (this.state.firmwareSource === 'github') {
+            this.elements.githubSource.classList.remove('hidden');
+            this.elements.uploadSource.classList.add('hidden');
+        } else {
+            this.elements.githubSource.classList.add('hidden');
+            this.elements.uploadSource.classList.remove('hidden');
+        }
+    },
+
+    // Load releases from GitHub
+    async loadReleases() {
+        try {
+            const releases = await GitHub.fetchReleases(this.REPO_OWNER, this.REPO_NAME);
+
+            // Filter to releases that have at least one .zip asset
+            this.state.releases = releases.filter(r =>
+                r.assets && r.assets.some(a => a.name.toLowerCase().endsWith('.zip'))
+            );
+
+            this.populateVersionDropdown();
+        } catch (error) {
+            this.elements.versionSelect.innerHTML = '<option value="">Failed to load releases</option>';
+            this.setDownloadStatus(error.message, 'error');
+        }
+    },
+
+    // Populate the version dropdown
+    populateVersionDropdown() {
+        const select = this.elements.versionSelect;
+        select.innerHTML = '<option value="">-- Select version --</option>';
+
+        for (const release of this.state.releases) {
+            const option = document.createElement('option');
+            option.value = release.id;
+            const label = release.name || release.tag_name;
+            const badge = release.prerelease ? ' (pre-release)' : '';
+            option.textContent = label + badge;
+            select.appendChild(option);
+        }
+
+        select.disabled = false;
+    },
+
+    // Handle version selection
+    onVersionSelect(e) {
+        const releaseId = parseInt(e.target.value);
+        this.state.selectedRelease = this.state.releases.find(r => r.id === releaseId) || null;
+        this.setDownloadStatus('');
+
+        if (!this.state.selectedRelease) {
+            this.elements.assetGroup.style.display = 'none';
+            this.elements.downloadBtn.disabled = true;
+            return;
+        }
+
+        // Get zip assets for this release
+        const zipAssets = this.state.selectedRelease.assets.filter(a =>
+            a.name.toLowerCase().endsWith('.zip')
+        );
+
+        if (zipAssets.length > 1) {
+            // Multiple zips (PCB variants) — show asset picker
+            this.elements.assetGroup.style.display = '';
+            const assetSelect = this.elements.assetSelect;
+            assetSelect.innerHTML = '';
+            for (const asset of zipAssets) {
+                const option = document.createElement('option');
+                option.value = asset.browser_download_url;
+                // Make display name friendlier: extract PCB variant if present
+                option.textContent = asset.name;
+                assetSelect.appendChild(option);
+            }
+        } else {
+            this.elements.assetGroup.style.display = 'none';
+        }
+
+        this.elements.downloadBtn.disabled = false;
+    },
+
+    // Get the selected asset download URL
+    getSelectedAssetUrl() {
+        if (!this.state.selectedRelease) return null;
+
+        const zipAssets = this.state.selectedRelease.assets.filter(a =>
+            a.name.toLowerCase().endsWith('.zip')
+        );
+
+        if (zipAssets.length > 1) {
+            return this.elements.assetSelect.value;
+        }
+
+        return zipAssets[0]?.browser_download_url || null;
+    },
+
+    // Download and load a release
+    async onDownloadRelease() {
+        const url = this.getSelectedAssetUrl();
+        if (!url) return;
+
+        this.state.downloading = true;
+        this.elements.downloadBtn.disabled = true;
+        this.elements.versionSelect.disabled = true;
+        this.setDownloadStatus('<span class="spinner"></span>Downloading firmware...', '');
+
+        try {
+            const arrayBuffer = await GitHub.downloadAsset(url, (loaded, total) => {
+                const pct = Math.round((loaded / total) * 100);
+                this.setDownloadStatus(`<span class="spinner"></span>Downloading... ${pct}%`, '');
+            });
+
+            this.setDownloadStatus('Extracting firmware...', '');
+
+            const files = await FileHandler.extractZipFile(arrayBuffer);
+            const validation = FileHandler.validateFirmwareFiles(files);
+
+            if (!validation.isValid) {
+                throw new Error(validation.message);
+            }
+
+            this.state.firmwareFiles = files;
+            this.setDownloadStatus(validation.message, 'success');
+            this.updateUI();
+
+            if (this.state.advancedMode) {
+                this.renderOffsetTable();
+            }
+        } catch (error) {
+            this.setDownloadStatus(error.message, 'error');
+            this.state.firmwareFiles = null;
+            this.updateUI();
+        } finally {
+            this.state.downloading = false;
+            this.elements.downloadBtn.disabled = false;
+            this.elements.versionSelect.disabled = false;
+        }
+    },
+
+    // Set download status message
+    setDownloadStatus(message, type) {
+        const el = this.elements.downloadStatus;
+        el.innerHTML = message;
+        el.className = 'download-status' + (type ? ` ${type}` : '');
     },
 
     // Handle zip upload
