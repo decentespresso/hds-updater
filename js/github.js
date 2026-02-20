@@ -90,24 +90,23 @@ const GitHub = {
     },
 
     /**
-     * Download an asset from GitHub
-     * @param {string} url - Asset browser download URL
+     * Download an asset from GitHub using the API
+     * @param {string} assetApiUrl - Asset API URL (from asset.url)
      * @param {Function} progressCallback - Optional callback for progress updates
      * @returns {Promise<ArrayBuffer>} Asset data as ArrayBuffer
      */
-    async downloadAsset(url, progressCallback = null) {
+    async downloadAsset(assetApiUrl, progressCallback = null) {
         try {
-            // GitHub release assets don't support CORS from browsers
-            // Use ghproxy.com which is specifically designed for GitHub
-            const corsProxy = 'https://ghproxy.com/';
-            const proxyUrl = corsProxy + url;
+            console.log('Downloading via GitHub API:', assetApiUrl);
 
-            console.log('Downloading via GitHub proxy:', url);
-
-            const response = await fetch(proxyUrl);
+            const response = await fetch(assetApiUrl, {
+                headers: {
+                    'Accept': 'application/octet-stream'
+                }
+            });
 
             if (!response.ok) {
-                throw new Error(`Download failed with status ${response.status}. The file might be too large or the CORS proxy is unavailable.`);
+                throw new Error(`Download failed with status ${response.status}.`);
             }
 
             const contentLength = response.headers.get('content-length');
@@ -178,7 +177,7 @@ const GitHub = {
         }
 
         console.log(`Downloading: ${selectedAsset.name}`);
-        // Use browser_download_url with CORS proxy
-        return this.downloadAsset(selectedAsset.browser_download_url, progressCallback);
+        // Use the API URL with Accept: application/octet-stream (supports CORS)
+        return this.downloadAsset(selectedAsset.url, progressCallback);
     }
 };
