@@ -57,7 +57,7 @@ The application follows a modular JavaScript architecture with separate concerns
 
 **js/github.js**
 - GitHub API integration for release fetching
-- Downloads assets via GitHub API (Accept: application/octet-stream) to avoid CORS issues
+- Downloads assets via CORS proxy (corsproxy.io with fallback) since GitHub release assets don't support CORS
 - Rate limited to 60 requests/hour (unauthenticated)
 
 ### Data Flow

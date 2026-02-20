@@ -89,64 +89,73 @@ const GitHub = {
         }
     },
 
+    // CORS proxies for downloading GitHub release assets (which don't support CORS natively)
+    CORS_PROXIES: [
+        (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    ],
+
     /**
-     * Download an asset from GitHub using the API
-     * @param {string} assetApiUrl - Asset API URL (from asset.url)
+     * Download an asset from GitHub via CORS proxy
+     * @param {string} downloadUrl - Asset browser_download_url
      * @param {Function} progressCallback - Optional callback for progress updates
      * @returns {Promise<ArrayBuffer>} Asset data as ArrayBuffer
      */
-    async downloadAsset(assetApiUrl, progressCallback = null) {
-        try {
-            console.log('Downloading via GitHub API:', assetApiUrl);
+    async downloadAsset(downloadUrl, progressCallback = null) {
+        const errors = [];
 
-            const response = await fetch(assetApiUrl, {
-                headers: {
-                    'Accept': 'application/octet-stream'
+        for (const proxyFn of this.CORS_PROXIES) {
+            const proxyUrl = proxyFn(downloadUrl);
+            console.log('Trying download via:', proxyUrl);
+
+            try {
+                const response = await fetch(proxyUrl);
+
+                if (!response.ok) {
+                    errors.push(`Proxy returned ${response.status}`);
+                    continue;
                 }
-            });
 
-            if (!response.ok) {
-                throw new Error(`Download failed with status ${response.status}.`);
-            }
+                const contentLength = response.headers.get('content-length');
+                const total = parseInt(contentLength, 10);
+                let loaded = 0;
 
-            const contentLength = response.headers.get('content-length');
-            const total = parseInt(contentLength, 10);
-            let loaded = 0;
+                const reader = response.body.getReader();
+                const chunks = [];
 
-            const reader = response.body.getReader();
-            const chunks = [];
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-            while (true) {
-                const { done, value } = await reader.read();
+                    chunks.push(value);
+                    loaded += value.length;
 
-                if (done) break;
-
-                chunks.push(value);
-                loaded += value.length;
-
-                if (progressCallback && total) {
-                    progressCallback(loaded, total);
-                } else if (progressCallback) {
-                    // If no content-length, just report loaded bytes
-                    progressCallback(loaded, loaded);
+                    if (progressCallback && total) {
+                        progressCallback(loaded, total);
+                    } else if (progressCallback) {
+                        progressCallback(loaded, loaded);
+                    }
                 }
+
+                const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                const result = new Uint8Array(totalLength);
+                let offset = 0;
+
+                for (const chunk of chunks) {
+                    result.set(chunk, offset);
+                    offset += chunk.length;
+                }
+
+                console.log(`Download complete: ${totalLength} bytes`);
+                return result.buffer;
+            } catch (error) {
+                console.warn(`Proxy failed: ${error.message}`);
+                errors.push(error.message);
+                continue;
             }
-
-            // Combine chunks into single ArrayBuffer
-            const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-            const result = new Uint8Array(totalLength);
-            let offset = 0;
-
-            for (const chunk of chunks) {
-                result.set(chunk, offset);
-                offset += chunk.length;
-            }
-
-            console.log(`Download complete: ${totalLength} bytes`);
-            return result.buffer;
-        } catch (error) {
-            throw new Error(`Failed to download asset: ${error.message}. If the file is large, consider uploading the zip file directly instead.`);
         }
+
+        throw new Error(`Failed to download asset (all proxies failed: ${errors.join('; ')}). Please upload the zip file directly instead.`);
     },
 
     /**
@@ -177,7 +186,6 @@ const GitHub = {
         }
 
         console.log(`Downloading: ${selectedAsset.name}`);
-        // Use the API URL with Accept: application/octet-stream (supports CORS)
-        return this.downloadAsset(selectedAsset.url, progressCallback);
+        return this.downloadAsset(selectedAsset.browser_download_url, progressCallback);
     }
 };
