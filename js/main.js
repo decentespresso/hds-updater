@@ -16,9 +16,7 @@ const App = {
         customOffsets: {},
         advancedMode: false,
         releases: [],
-        selectedRelease: null,
-        downloading: false,
-        firmwareSource: 'github'
+        selectedRelease: null
     },
 
     // Initialize application
@@ -32,10 +30,7 @@ const App = {
     // Cache DOM elements
     cacheElements() {
         this.elements = {
-            // Firmware source
-            sourceRadios: document.querySelectorAll('input[name="firmware-source"]'),
-            githubSource: document.getElementById('github-source'),
-            uploadSource: document.getElementById('upload-source'),
+            // Firmware
             versionSelect: document.getElementById('version-select'),
             assetSelect: document.getElementById('asset-select'),
             assetGroup: document.getElementById('asset-group'),
@@ -69,14 +64,9 @@ const App = {
 
     // Attach event listeners
     attachEventListeners() {
-        // Firmware source toggle
-        this.elements.sourceRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => this.onSourceChange(e));
-        });
-
         // GitHub release selection
         this.elements.versionSelect.addEventListener('change', (e) => this.onVersionSelect(e));
-        this.elements.downloadBtn.addEventListener('click', () => this.onDownloadRelease());
+        this.elements.downloadBtn.addEventListener('click', () => this.onDownloadFirmware());
 
         // Upload
         this.elements.zipUpload.addEventListener('change', (e) => this.onZipUpload(e));
@@ -103,18 +93,6 @@ const App = {
         this.elements.flashBtn.disabled = !this.state.connected ||
                                            !this.state.firmwareFiles ||
                                            this.state.flashing;
-    },
-
-    // Handle firmware source toggle
-    onSourceChange(e) {
-        this.state.firmwareSource = e.target.value;
-        if (this.state.firmwareSource === 'github') {
-            this.elements.githubSource.classList.remove('hidden');
-            this.elements.uploadSource.classList.add('hidden');
-        } else {
-            this.elements.githubSource.classList.add('hidden');
-            this.elements.uploadSource.classList.remove('hidden');
-        }
     },
 
     // Load releases from GitHub
@@ -202,47 +180,16 @@ const App = {
         return zipAssets[0]?.browser_download_url || null;
     },
 
-    // Download and load a release
-    async onDownloadRelease() {
+    // Trigger a native browser download for the selected firmware asset
+    onDownloadFirmware() {
         const url = this.getSelectedAssetUrl();
         if (!url) return;
 
-        this.state.downloading = true;
-        this.elements.downloadBtn.disabled = true;
-        this.elements.versionSelect.disabled = true;
-        this.setDownloadStatus('<span class="spinner"></span>Downloading firmware...', '');
-
-        try {
-            const arrayBuffer = await GitHub.downloadAsset(url, (loaded, total) => {
-                const pct = Math.round((loaded / total) * 100);
-                this.setDownloadStatus(`<span class="spinner"></span>Downloading... ${pct}%`, '');
-            });
-
-            this.setDownloadStatus('Extracting firmware...', '');
-
-            const files = await FileHandler.extractZipFile(arrayBuffer);
-            const validation = FileHandler.validateFirmwareFiles(files);
-
-            if (!validation.isValid) {
-                throw new Error(validation.message);
-            }
-
-            this.state.firmwareFiles = files;
-            this.setDownloadStatus(validation.message, 'success');
-            this.updateUI();
-
-            if (this.state.advancedMode) {
-                this.renderOffsetTable();
-            }
-        } catch (error) {
-            this.setDownloadStatus(error.message, 'error');
-            this.state.firmwareFiles = null;
-            this.updateUI();
-        } finally {
-            this.state.downloading = false;
-            this.elements.downloadBtn.disabled = false;
-            this.elements.versionSelect.disabled = false;
-        }
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.click();
     },
 
     // Set download status message
@@ -257,12 +204,13 @@ const App = {
         const file = e.target.files[0];
         if (!file) {
             this.state.firmwareFiles = null;
+            this.setDownloadStatus('');
             this.updateUI();
             return;
         }
 
         try {
-            this.log('Extracting firmware files...', 'info');
+            this.setDownloadStatus('Extracting firmware...', '');
 
             const files = await FileHandler.extractZipFile(file);
             const validation = FileHandler.validateFirmwareFiles(files);
@@ -272,7 +220,7 @@ const App = {
             }
 
             this.state.firmwareFiles = files;
-            this.log(validation.message, 'success');
+            this.setDownloadStatus(validation.message, 'success');
             this.updateUI();
 
             // Re-render offset table if advanced mode is active
@@ -280,7 +228,7 @@ const App = {
                 this.renderOffsetTable();
             }
         } catch (error) {
-            this.log(error.message, 'error');
+            this.setDownloadStatus(error.message, 'error');
             this.state.firmwareFiles = null;
             this.updateUI();
         }

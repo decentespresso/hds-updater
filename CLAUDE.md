@@ -56,13 +56,13 @@ The application follows a modular JavaScript architecture with separate concerns
   - Filesystem: 0x290000
 
 **js/github.js**
-- GitHub API integration for release fetching
-- Downloads assets via CORS proxy (corsproxy.io with fallback) since GitHub release assets don't support CORS
+- GitHub API integration for release fetching (JSON API supports CORS)
+- User downloads assets via native browser download (no CORS proxy needed)
 - Rate limited to 60 requests/hour (unauthenticated)
 
 ### Data Flow
 
-1. User uploads firmware zip OR selects GitHub release
+1. User selects version from dropdown, downloads zip via browser, then uploads it
 2. FileHandler extracts and validates .bin files
 3. User connects to ESP32 device via Web Serial API
 4. Flasher detects chip type and establishes connection

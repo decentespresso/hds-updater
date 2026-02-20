@@ -60,26 +60,6 @@
             padding-bottom: 0.5em;
         }
 
-        .radio-group {
-            margin-bottom: 1.5em;
-        }
-
-        .radio-option {
-            display: inline-block;
-            margin-right: 2em;
-        }
-
-        .firmware-source {
-            padding: 1.5em;
-            background: rgba(144, 144, 144, 0.05);
-            border-radius: 0.5em;
-            margin-bottom: 1em;
-        }
-
-        .firmware-source.hidden {
-            display: none;
-        }
-
         .input-group {
             margin-bottom: 1.5em;
         }
@@ -401,21 +381,6 @@
             color: #51cf66;
         }
 
-        .spinner {
-            display: inline-block;
-            width: 1em;
-            height: 1em;
-            border: 2px solid rgba(144, 144, 144, 0.3);
-            border-top-color: #47cdd9;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-            vertical-align: middle;
-            margin-right: 0.5em;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -425,51 +390,28 @@
             <p class="description">Update your Half Decent Scale firmware directly from your browser using the Web Serial API. No software installation required.</p>
         </header>
 
-        <!-- Firmware Source Selection -->
+        <!-- Firmware -->
         <section class="section">
-            <h2>Firmware Source</h2>
+            <h2>Firmware</h2>
 
-            <div class="radio-group">
-                <label class="radio-option">
-                    <input type="radio" name="firmware-source" value="github" checked>
-                    Download from GitHub
-                </label>
-                <label class="radio-option">
-                    <input type="radio" name="firmware-source" value="upload">
-                    Upload Zip File
-                </label>
-            </div>
-
-            <!-- GitHub Release Source -->
-            <div id="github-source" class="firmware-source">
-                <div class="download-row">
-                    <div class="input-group">
-                        <label for="version-select">Firmware Version</label>
-                        <select id="version-select" disabled>
-                            <option value="">Loading releases...</option>
-                        </select>
-                    </div>
-                    <div class="input-group" id="asset-group" style="display: none;">
-                        <label for="asset-select">PCB Variant</label>
-                        <select id="asset-select"></select>
-                    </div>
-                    <button id="download-btn" class="button special" disabled>Download &amp; Load</button>
-                </div>
-                <div id="download-status" class="download-status"></div>
-            </div>
-
-            <!-- Upload Source -->
-            <div id="upload-source" class="firmware-source hidden">
+            <div class="download-row">
                 <div class="input-group">
-                    <label for="zip-upload">Select Firmware Zip File</label>
-                    <input type="file" id="zip-upload" accept=".zip">
-                    <p style="margin-top: 0.5em; color: #666; font-size: 0.9em;">
-                        Download firmware from
-                        <a href="https://github.com/decentespresso/openscale/releases" target="_blank" style="color: #47cdd9;">
-                            GitHub Releases
-                        </a>, then upload it here.
-                    </p>
+                    <label for="version-select">Version</label>
+                    <select id="version-select" disabled>
+                        <option value="">Loading releases...</option>
+                    </select>
                 </div>
+                <div class="input-group" id="asset-group" style="display: none;">
+                    <label for="asset-select">PCB Variant</label>
+                    <select id="asset-select"></select>
+                </div>
+                <button id="download-btn" class="button special" disabled>Download</button>
+            </div>
+            <div id="download-status" class="download-status"></div>
+
+            <div class="input-group" style="margin-top: 1em;">
+                <label for="zip-upload">After downloading, select the zip file:</label>
+                <input type="file" id="zip-upload" accept=".zip">
             </div>
         </section>
 
