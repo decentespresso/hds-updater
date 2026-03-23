@@ -4,6 +4,7 @@
 
 - A **Google Chrome** or **Microsoft Edge** browser (other browsers won't work)
 - A USB cable connected between your scale and your computer
+- **Mac users:** you may need to install the [CH34x USB driver](https://github.com/WCHSoftGroup/ch34xser_macos) first — without it, your computer won't recognize the scale. Some Windows and Linux machines may also need this driver.
 
 ## Step 1: Pick a Version
 
