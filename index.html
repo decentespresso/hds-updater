@@ -381,10 +381,31 @@
             color: #51cf66;
         }
 
+        .browser-warning {
+            padding: 1.5em;
+            background: rgba(255, 107, 107, 0.1);
+            border: solid 2px rgba(255, 107, 107, 0.4);
+            border-radius: 0.5em;
+            margin-bottom: 2em;
+            color: #cc3333;
+            line-height: 1.65em;
+        }
+
+        .browser-warning strong {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 0.5em;
+        }
     </style>
 </head>
 <body>
     <div class="page-container">
+        <div id="browser-warning" class="browser-warning" role="alert" style="display: none;">
+            <strong>Unsupported Browser</strong>
+            Your current browser does not support the Web Serial API, which is required for flashing firmware.
+            Please use <b>Google Chrome</b> (v89+) or <b>Microsoft Edge</b> (v89+) to use this tool.
+        </div>
+
         <header>
             <h1>Half Decent Scale Updater</h1>
             <p class="description">Update your Half Decent Scale firmware directly from your browser using the Web Serial API. No software installation required.</p>
@@ -457,6 +478,13 @@
             <div id="console" class="console hidden"></div>
         </section>
     </div>
+
+    <!-- Browser compatibility check -->
+    <script>
+        if (!('serial' in navigator)) {
+            document.getElementById('browser-warning').style.display = 'block';
+        }
+    </script>
 
     <!-- External Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
