@@ -347,7 +347,7 @@ const App = {
     // Update progress bar
     updateProgress(percent, info) {
         const progress = Math.min(100, Math.max(0, percent));
-        this.elements.progressFill.style.width = `${progress}%`;
+        this.elements.progressFill.style.transform = `scaleX(${progress / 100})`;
         this.elements.progressFill.textContent = `${progress.toFixed(0)}%`;
 
         if (info && info.currentFileName) {

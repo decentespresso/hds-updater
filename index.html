@@ -134,8 +134,10 @@
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #47cdd9, #5cd3dd);
-            width: 0%;
-            transition: width 0.3s ease;
+            width: 100%;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -151,7 +153,7 @@
             color: #ecf0f1;
             padding: 1em;
             border-radius: 0.5em;
-            height: 400px;
+            max-height: min(400px, 50vh);
             overflow-y: auto;
             font-family: 'Courier New', monospace;
             font-size: 0.8em;
@@ -215,19 +217,26 @@
 
         .offset-editor {
             margin-top: 1em;
+            display: grid;
+            grid-template-rows: 0fr;
+            opacity: 0;
+            transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+        }
+
+        .offset-editor > * {
+            overflow: hidden;
+        }
+
+        .offset-editor.visible {
+            grid-template-rows: 1fr;
+            opacity: 1;
+        }
+
+        .offset-editor-inner {
             padding: 1.5em;
             background: rgba(144, 144, 144, 0.05);
             border-radius: 0.5em;
             border: solid 1px rgba(144, 144, 144, 0.25);
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-            transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
-        }
-
-        .offset-editor.visible {
-            max-height: 1000px;
-            opacity: 1;
         }
 
         .offset-editor-header {
@@ -373,6 +382,10 @@
             height: fit-content;
         }
 
+        #zip-upload-group {
+            margin-top: 1em;
+        }
+
         .download-status {
             margin-top: 0.75em;
             font-size: 0.9em;
@@ -436,7 +449,7 @@
             </div>
             <div id="download-status" class="download-status"></div>
 
-            <div class="input-group" style="margin-top: 1em;">
+            <div class="input-group" id="zip-upload-group">
                 <label for="zip-upload">After downloading, select the zip file:</label>
                 <input type="file" id="zip-upload" accept=".zip">
             </div>
@@ -469,11 +482,13 @@
 
             <!-- Offset Editor Panel -->
             <div id="offset-editor-panel" class="offset-editor">
-                <div class="offset-editor-header">
-                    <h3>Flash Memory Offsets</h3>
-                    <button id="reset-all-offsets-btn" class="button secondary">Reset All</button>
+                <div class="offset-editor-inner">
+                    <div class="offset-editor-header">
+                        <h3>Flash Memory Offsets</h3>
+                        <button id="reset-all-offsets-btn" class="button secondary">Reset All</button>
+                    </div>
+                    <div id="offset-table-container"></div>
                 </div>
-                <div id="offset-table-container"></div>
             </div>
 
             <div id="progress-container" class="progress-container hidden">
