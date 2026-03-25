@@ -112,7 +112,7 @@ const Flasher = {
      * @param {Function} logCallback - Callback for log messages
      * @returns {Promise<void>}
      */
-    async flashFirmware(files, progressCallback = null, logCallback = null) {
+    async flashFirmware(files, progressCallback = null, logCallback = null, { eraseAll = false } = {}) {
         if (!this.connected || !this.esploader) {
             throw new Error('Device not connected');
         }
@@ -174,7 +174,7 @@ const Flasher = {
                         flashSize: flashConfig.flashSize,
                         flashMode: flashConfig.flashMode,
                         flashFreq: flashConfig.flashFreq,
-                        eraseAll: false,
+                        eraseAll: eraseAll,
                         compress: true,
                         reportProgress: (fileIndex, written, total) => {
                             const fileProgress = (written / total) * 100;

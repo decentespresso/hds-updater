@@ -55,6 +55,7 @@ const App = {
             console: document.getElementById('console'),
 
             // Advanced options
+            eraseFlashCheckbox: document.getElementById('erase-flash-checkbox'),
             advancedModeCheckbox: document.getElementById('advanced-mode-checkbox'),
             offsetEditorPanel: document.getElementById('offset-editor-panel'),
             offsetTableContainer: document.getElementById('offset-table-container'),
@@ -329,10 +330,15 @@ const App = {
             this.log(`Prepared ${preparedFiles.length} file(s) for flashing`, 'info');
 
             // Flash firmware
+            const eraseAll = this.elements.eraseFlashCheckbox.checked;
+            if (eraseAll) {
+                this.log('Erasing entire flash before writing...', 'info');
+            }
             await Flasher.flashFirmware(
                 preparedFiles,
                 (progress, info) => this.updateProgress(progress, info),
-                (message, type) => this.log(message, type)
+                (message, type) => this.log(message, type),
+                { eraseAll }
             );
 
             this.log('Flashing completed successfully!', 'success');
