@@ -415,6 +415,27 @@
             font-size: 1.1em;
             margin-bottom: 0.5em;
         }
+
+        .driver-notice {
+            padding: 1.5em;
+            background: rgba(74, 144, 226, 0.1);
+            border: solid 2px rgba(74, 144, 226, 0.4);
+            border-radius: 0.5em;
+            margin-bottom: 2em;
+            color: #2a5d9c;
+            line-height: 1.65em;
+        }
+
+        .driver-notice strong {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 0.5em;
+        }
+
+        .driver-notice a {
+            color: #2a5d9c;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -423,6 +444,13 @@
             <strong>Unsupported Browser</strong>
             Your current browser does not support the Web Serial API, which is required for flashing firmware.
             Please use <b>Google Chrome</b> (v89+) or <b>Microsoft Edge</b> (v89+) to use this tool.
+        </div>
+
+        <div id="driver-notice" class="driver-notice" role="note" style="display: none;">
+            <strong>Mac users: install the USB driver first</strong>
+            macOS may not recognize the scale until you install the WCH CH34x/CH343 USB serial driver.
+            Download and install it from <a href="https://github.com/WCHSoftGroup/ch34xser_macos" target="_blank" rel="noopener noreferrer">WCHSoftGroup/ch34xser_macos</a>, then reconnect the scale.
+            See the <a href="GUIDE.md" target="_blank" rel="noopener noreferrer">guide</a> for details.
         </div>
 
         <header>
@@ -508,6 +536,12 @@
     <script>
         if (!('serial' in navigator)) {
             document.getElementById('browser-warning').style.display = 'block';
+        } else {
+            // Supported browser with Web Serial — show macOS driver notice on Mac.
+            var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+            if (/mac/i.test(platform)) {
+                document.getElementById('driver-notice').style.display = 'block';
+            }
         }
     </script>
 
