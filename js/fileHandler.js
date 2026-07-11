@@ -102,8 +102,9 @@ const FileHandler = {
             return 0x10000;  // Main application
         }
         if (name.includes('littlefs') || name.includes('spiffs') || name.includes('fs')) {
-            // Default filesystem offset, may need adjustment based on partition table
-            return 0x290000;
+            // Filesystem offset for default_8MB.csv partition table (ESP32-S3 with 8MB flash)
+            // Matches arduino-esp32 tools/partitions/default_8MB.csv: spiffs at 0x670000
+            return 0x670000;
         }
 
         // Default offset for unknown files

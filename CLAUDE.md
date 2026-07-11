@@ -48,12 +48,12 @@ The application follows a modular JavaScript architecture with separate concerns
 **js/fileHandler.js**
 - Zip file extraction using JSZip
 - Firmware file validation
-- Flash offset mapping for ESP32-S3 standard layout:
+- Flash offset mapping for ESP32-S3 standard layout (default_8MB.csv partition table):
   - Bootloader: 0x0000 (ESP32-S3, not 0x1000)
   - Partitions: 0x8000
   - Boot app: 0xe000
   - Firmware: 0x10000
-  - Filesystem: 0x290000
+  - Filesystem: 0x670000
 
 **js/github.js**
 - GitHub API integration for release fetching (JSON API supports CORS)
@@ -95,7 +95,7 @@ Standard offsets (matches PlatformIO defaults):
 | Partitions | 0x8000 | *partition*.bin |
 | Boot App | 0xe000 | *boot_app*.bin |
 | Firmware | 0x10000 | *firmware*.bin, *app*.bin |
-| Filesystem | 0x290000 | *littlefs*.bin, *spiffs*.bin, *fs*.bin |
+| Filesystem | 0x670000 | *littlefs*.bin, *spiffs*.bin, *fs*.bin |
 
 **Note**: ESP32-S3 bootloader is at 0x0000, not 0x1000 (which is for ESP32 classic).
 

@@ -83,7 +83,7 @@ firmware.zip
 ├── partitions.bin    # Flashed at 0x8000
 ├── boot_app0.bin     # Flashed at 0xe000 (optional)
 ├── firmware.bin      # Flashed at 0x10000 (main application)
-└── littlefs.bin      # Flashed at 0x290000 (filesystem, optional)
+└── littlefs.bin      # Flashed at 0x670000 (filesystem, optional)
 ```
 
 **Supported file names** (case-insensitive):
@@ -104,7 +104,7 @@ To flash firmware from GitHub Releases:
 
 ### Flash Memory Offsets
 
-The tool automatically assigns flash offsets based on file names (ESP32-S3 standard layout):
+The tool automatically assigns flash offsets based on file names (ESP32-S3 standard layout, `default_8MB.csv` partition table):
 
 | File Type | Default Offset | Notes |
 |-----------|----------------|-------|
@@ -112,11 +112,11 @@ The tool automatically assigns flash offsets based on file names (ESP32-S3 stand
 | Partitions | 0x8000 | Partition table |
 | Boot App | 0xe000 | Boot app partition selector |
 | Firmware | 0x10000 | Main application |
-| Filesystem | 0x290000 | SPIFFS/LittleFS data |
+| Filesystem | 0x670000 | SPIFFS/LittleFS data |
 
 **Flash Settings**: DIO mode, 80MHz frequency, auto-detect size
 
-**Note**: Filesystem offset may vary based on your partition table. Verify your partition scheme if you encounter issues.
+**Note**: Filesystem offset corresponds to the `default_8MB.csv` partition table from arduino-esp32. The filesystem (spiffs) partition is at 0x670000 with size 0x180000. If using a different partition scheme, verify your partition layout.
 
 ## Troubleshooting
 
