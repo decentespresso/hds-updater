@@ -2,6 +2,8 @@
 
 The updater flashes official Half Decent Scale firmware from Chrome or Edge through Web Serial. Firmware processing stays in the browser.
 
+Use the hosted updater at [https://decentespresso.github.io/hds-updater/](https://decentespresso.github.io/hds-updater/).
+
 ## Requirements
 
 - Chrome 89 or newer, or Edge 89 or newer
@@ -18,6 +20,7 @@ The updater flashes official Half Decent Scale firmware from Chrome or Edge thro
 5. Flash the firmware without disconnecting power or USB.
 
 The updater checks the chip and flash capacity again immediately before writing, then disconnects after every flash attempt.
+The console records `Full flash erase: enabled` or `Full flash erase: disabled` for every attempt.
 
 ## Accepted Firmware Package
 
@@ -30,9 +33,9 @@ The ZIP must be at most 6 MiB and contain exactly these case-sensitive files at 
 | `firmware.bin` | `0x010000` | `0x330000` |
 | `littlefs.bin` | `0x670000` | `0x180000` |
 
-Paths, directories, additional files, empty files, encryption, duplicate or normalized names, special files, and excessive compression are rejected before extraction. Flash addresses are fixed and cannot be edited.
+Paths, directories, additional files, empty files, encryption, duplicate or normalized names, special files, and compression ratios above 100:1 are rejected before extraction. Cumulative uncompressed data is limited to `0x4B9000`. Flash addresses are fixed and cannot be edited.
 
-The package validator requires ESP32-S3 image headers and the HDS 8 MiB partition layout:
+The package validator checks Espressif image magic, segment counts and metadata, truncation, the ESP32-S3 chip ID, partition ranges and overlap, and optional partition-table MD5 data. It requires the HDS 8 MiB partition layout:
 
 | Role | Type/subtype | Address | Size |
 |------|--------------|---------|------|
@@ -47,7 +50,7 @@ The browser writes `firmware.bin` only to OTA 0 and leaves OTA 1 untouched. Espr
 
 ## Development
 
-Use the pinned Node version and install exact locked dependencies:
+Use Node `22.17.0` and install exact locked dependencies:
 
 ```bash
 npm ci
@@ -83,6 +86,6 @@ Mocked and browser checks are not physical hardware validation.
 
 ## Security
 
-The production build self-hosts its exact browser dependencies and enforces a restrictive Content Security Policy. Only the GitHub Releases API is allowed for runtime network requests. There is no analytics or telemetry.
+The production build self-hosts its exact browser dependencies and enforces a restrictive Content Security Policy. CSP `connect-src` permits only `https://api.github.com`, and firmware downloads open only validated HTTPS `github.com` URLs. There is no analytics or telemetry.
 
 Signing, release-digest verification, OTA downloads, and automatic production deployment are outside the current hardening scope.
