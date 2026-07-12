@@ -46,9 +46,9 @@ The application follows a modular JavaScript architecture with separate concerns
 - Flash configuration: DIO mode, 80MHz, 921600 baud
 
 **js/fileHandler.js**
-- Zip file extraction using JSZip
-- Firmware file validation
-- Flash offset mapping for ESP32-S3 standard layout (default_8MB.csv partition table):
+- Bounded ZIP extraction using zip.js public entry metadata
+- Exact four-file firmware schema validation
+- Trusted flash mapping for the HDS 8 MiB partition table:
   - Bootloader: 0x0000 (ESP32-S3, not 0x1000)
   - Partitions: 0x8000
   - Boot app: 0xe000
@@ -72,9 +72,10 @@ The application follows a modular JavaScript architecture with separate concerns
 
 ### External Dependencies
 
-Loaded via CDN:
+Pinned and bundled into `dist/`:
 - **esptool-js** (v0.4.0): ESP32 flashing protocol
-- **JSZip** (v3.10.1): Zip file handling
+- **zip.js** (v2.8.26): bounded ZIP metadata and extraction
+- **SparkMD5** (v3.0.2): optional partition-table MD5 validation
 - **Decent Espresso CSS**: UI styling
 
 ### Browser Requirements
@@ -117,9 +118,8 @@ Standard offsets (matches PlatformIO defaults):
 
 ### File Processing
 
-- Firmware zip may contain files in subdirectories - extract filename only
-- Filter out macOS metadata files (`__MACOSX`)
-- Case-insensitive filename matching for offset detection
+- Firmware ZIP entries must be the exact four case-sensitive root files
+- Paths, metadata files, collisions, and additional entries are rejected
 - Files must be flashed in offset order (bootloader first)
 
 ## Deployment
