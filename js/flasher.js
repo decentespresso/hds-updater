@@ -180,6 +180,7 @@ const Flasher = {
             // Get flash config
             const flashConfig = this.getFlashConfig();
             log(`Flash mode: ${flashConfig.flashMode}, Frequency: ${flashConfig.flashFreq}`, 'info');
+            log(`Full flash erase: ${eraseAll ? 'enabled' : 'disabled'}`, eraseAll ? 'warning' : 'info');
 
             const totalSize = fileArray.reduce((sum, file) => sum + file.data.length, 0);
             const completedSizes = fileArray.map((_, index) =>

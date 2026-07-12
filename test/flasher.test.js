@@ -88,11 +88,23 @@ test('flashes four ordered images in one full-erase transaction and reports aggr
 
 test('passes disabled full erase once', async () => {
     const { flasher, calls } = mockConnectedFlasher();
+    const logs = [];
 
-    await flasher.flashFirmware(firmwareFiles(), null, null, { eraseAll: false });
+    await flasher.flashFirmware(firmwareFiles(), null, message => logs.push(message), { eraseAll: false });
 
     assert.equal(calls.length, 1);
     assert.equal(calls[0].eraseAll, false);
+    assert.ok(logs.includes('Full flash erase: disabled'));
+});
+
+test('logs enabled full erase before passing it to esptool-js', async () => {
+    const { flasher, calls } = mockConnectedFlasher();
+    const logs = [];
+
+    await flasher.flashFirmware(firmwareFiles(), null, message => logs.push(message), { eraseAll: true });
+
+    assert.equal(calls[0].eraseAll, true);
+    assert.ok(logs.includes('Full flash erase: enabled'));
 });
 
 test('does not reset after write or verification failure', async () => {
