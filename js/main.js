@@ -577,7 +577,7 @@ const App = {
 
 // Initialize app when DOM is loaded AND esptool is ready
 const initApp = () => {
-    if (window.esptooljs) {
+    if (window.esptooljs && window.zipjs) {
         console.log('Initializing app with esptool-js ready');
         App.init();
     } else {

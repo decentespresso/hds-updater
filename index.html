@@ -546,13 +546,11 @@
     </script>
 
     <!-- External Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-
-    <!-- Load esptool-js and make it global -->
     <script type="module">
+        import * as zipjs from 'https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.8.26/+esm';
         import { Transport, ESPLoader } from 'https://esm.sh/esptool-js@0.4.0';
+        window.zipjs = zipjs;
         window.esptooljs = { Transport, ESPLoader };
-        console.log('esptool-js loaded:', window.esptooljs);
     </script>
 
     <!-- Application Scripts -->
