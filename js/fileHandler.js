@@ -99,9 +99,5 @@ const FileHandler = {
             offset: profile.offset,
             data: files[filename]
         }));
-    },
-
-    prepareFirmwareFilesWithCustomOffsets(files) {
-        return this.prepareFirmwareFiles(files);
     }
 };

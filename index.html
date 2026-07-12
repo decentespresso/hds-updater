@@ -507,21 +507,15 @@
                 <input type="checkbox" id="erase-flash-checkbox">
                 <label for="erase-flash-checkbox">Advanced: Erase Entire Flash Before Update</label>
             </div>
-            <div class="advanced-checkbox-container">
-                <input type="checkbox" id="advanced-mode-checkbox">
-                <label for="advanced-mode-checkbox">Advanced: Custom Flash Offsets</label>
-            </div>
-
-            <!-- Offset Editor Panel -->
-            <div id="offset-editor-panel" class="offset-editor">
-                <div class="offset-editor-inner">
-                    <div class="offset-editor-header">
-                        <h3>Flash Memory Offsets</h3>
-                        <button id="reset-all-offsets-btn" class="button secondary">Reset All</button>
-                    </div>
-                    <div id="offset-table-container"></div>
-                </div>
-            </div>
+            <table class="offset-table">
+                <thead><tr><th>File</th><th>Flash address</th></tr></thead>
+                <tbody>
+                    <tr><td>bootloader.bin</td><td>0x000000</td></tr>
+                    <tr><td>partitions.bin</td><td>0x008000</td></tr>
+                    <tr><td>firmware.bin</td><td>0x010000</td></tr>
+                    <tr><td>littlefs.bin</td><td>0x670000</td></tr>
+                </tbody>
+            </table>
 
             <div id="progress-container" class="progress-container hidden">
                 <div class="progress-bar">
