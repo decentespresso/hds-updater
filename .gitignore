@@ -6,6 +6,7 @@ index-working.html
 
 # Node modules and build artifacts
 node_modules/
+dist/
 esptool-js-*/
 lib-esptool/
 esptool-bundle.js
