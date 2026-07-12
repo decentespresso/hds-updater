@@ -1,0 +1,9 @@
+{
+  "name": "hds-updater",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "lint": "node --check js/flasher.js && node --check js/fileHandler.js && node --check js/github.js && node --check js/main.js && node --check test/flasher.test.js",
+    "build": "npm run lint"
+  }
+}

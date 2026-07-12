@@ -113,6 +113,10 @@ const Flasher = {
      * @returns {Promise<void>}
      */
     async flashFirmware(files, progressCallback = null, logCallback = null, { eraseAll = false } = {}) {
+        if (!Array.isArray(files) || files.length === 0) {
+            throw new Error('No firmware files to flash');
+        }
+
         if (!this.connected || !this.esploader) {
             throw new Error('Device not connected');
         }
@@ -137,14 +141,14 @@ const Flasher = {
                 return binary;
             };
 
-            // Prepare file data for esptool-js format (expects binary strings)
-            const fileArray = files.map(file => ({
+            const sortedFiles = [...files].sort((a, b) => a.offset - b.offset);
+            const fileArray = sortedFiles.map(file => ({
                 data: arrayBufferToBinaryString(file.data),
                 address: file.offset
             }));
 
-            log(`Flashing ${files.length} file(s)...`, 'info');
-            files.forEach(file => {
+            log(`Flashing ${sortedFiles.length} file(s)...`, 'info');
+            sortedFiles.forEach(file => {
                 log(`  - ${file.filename} @ 0x${file.offset.toString(16).toUpperCase()}`, 'info');
             });
 
@@ -152,53 +156,34 @@ const Flasher = {
             const flashConfig = this.getFlashConfig();
             log(`Flash mode: ${flashConfig.flashMode}, Frequency: ${flashConfig.flashFreq}`, 'info');
 
-            // Write files to flash
-            let totalSize = 0;
-            let writtenSize = 0;
+            const totalSize = fileArray.reduce((sum, file) => sum + file.data.length, 0);
+            const completedSizes = fileArray.map((_, index) =>
+                fileArray.slice(0, index).reduce((sum, file) => sum + file.data.length, 0)
+            );
 
-            // Calculate total size
-            for (const file of fileArray) {
-                totalSize += file.data.length;
-            }
+            await this.esploader.writeFlash({
+                fileArray,
+                flashSize: flashConfig.flashSize,
+                flashMode: flashConfig.flashMode,
+                flashFreq: flashConfig.flashFreq,
+                eraseAll,
+                compress: true,
+                reportProgress: (fileIndex, written, total) => {
+                    const fileInfo = sortedFiles[fileIndex];
+                    const fileProgress = total === 0 ? 0 : (written / total) * 100;
+                    const overallWritten = completedSizes[fileIndex] +
+                        (fileProgress / 100) * fileArray[fileIndex].data.length;
 
-            // Flash each file
-            for (let i = 0; i < fileArray.length; i++) {
-                const file = fileArray[i];
-                const fileInfo = files[i];
-
-                log(`Flashing ${fileInfo.filename} (${file.data.length} bytes)...`, 'info');
-
-                try {
-                    await this.esploader.writeFlash({
-                        fileArray: [file],
-                        flashSize: flashConfig.flashSize,
-                        flashMode: flashConfig.flashMode,
-                        flashFreq: flashConfig.flashFreq,
-                        eraseAll: eraseAll,
-                        compress: true,
-                        reportProgress: (fileIndex, written, total) => {
-                            const fileProgress = (written / total) * 100;
-                            const overallWritten = writtenSize + written;
-                            const overallProgress = (overallWritten / totalSize) * 100;
-
-                            if (progressCallback) {
-                                progressCallback(overallProgress, {
-                                    currentFile: i + 1,
-                                    totalFiles: files.length,
-                                    currentFileName: fileInfo.filename,
-                                    fileProgress
-                                });
-                            }
-                        }
-                    });
-
-                    writtenSize += file.data.length;
-                    log(`Successfully flashed ${fileInfo.filename}`, 'success');
-                } catch (error) {
-                    log(`Failed to flash ${fileInfo.filename}: ${error.message}`, 'error');
-                    throw error;
+                    if (progressCallback) {
+                        progressCallback((overallWritten / totalSize) * 100, {
+                            currentFile: fileIndex + 1,
+                            totalFiles: sortedFiles.length,
+                            currentFileName: fileInfo.filename,
+                            fileProgress
+                        });
+                    }
                 }
-            }
+            });
 
             log('Firmware flashed successfully!', 'success');
 
