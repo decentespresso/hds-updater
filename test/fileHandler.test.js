@@ -8,6 +8,7 @@ const source = fs.readFileSync('js/fileHandler.js', 'utf8');
 const loadFileHandler = entries => {
     const context = vm.createContext({
         Blob,
+        FirmwareValidator: { validate() {} },
         Object,
         zipjs: {
             BlobReader: class {},

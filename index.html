@@ -549,12 +549,15 @@
     <script type="module">
         import * as zipjs from 'https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.8.26/+esm';
         import { Transport, ESPLoader } from 'https://esm.sh/esptool-js@0.4.0';
+        import SparkMD5 from 'https://cdn.jsdelivr.net/npm/spark-md5@3.0.2/+esm';
         window.zipjs = zipjs;
         window.esptooljs = { Transport, ESPLoader };
+        window.SparkMD5 = SparkMD5;
     </script>
 
     <!-- Application Scripts -->
     <script src="js/github.js" defer></script>
+    <script src="js/firmwareValidator.js" defer></script>
     <script src="js/fileHandler.js" defer></script>
     <script src="js/flasher.js" defer></script>
     <script src="js/main.js" defer></script>

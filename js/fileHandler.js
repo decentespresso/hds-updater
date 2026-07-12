@@ -31,6 +31,7 @@ const FileHandler = {
                 files[entry.filename] = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
             }
 
+            FirmwareValidator.validate(files);
             return Object.freeze(files);
         } catch (error) {
             throw new Error(`Invalid firmware archive: ${error.message}`);
