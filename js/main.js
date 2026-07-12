@@ -5,6 +5,7 @@ const App = {
         firmwareFiles: null,
         connected: false,
         flashing: false,
+        targetConfirmed: false,
         releases: [],
         selectedRelease: null
     },
@@ -20,6 +21,7 @@ const App = {
         const ids = [
             'version-select', 'asset-select', 'asset-group', 'download-btn', 'download-status', 'zip-upload',
             'connect-btn', 'disconnect-btn', 'device-info', 'chip-type', 'mac-address', 'flash-size',
+            'target-confirmation-group', 'target-confirmation',
             'flash-btn', 'progress-container', 'progress-fill', 'console', 'erase-flash-checkbox'
         ];
         this.elements = Object.fromEntries(ids.map(id => [id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()),
@@ -33,12 +35,31 @@ const App = {
         this.elements.connectBtn.addEventListener('click', () => this.onConnect());
         this.elements.disconnectBtn.addEventListener('click', () => this.onDisconnect());
         this.elements.flashBtn.addEventListener('click', () => this.onFlash());
+        navigator.serial?.addEventListener('disconnect', () => this.handlePortDisconnect());
+        this.elements.targetConfirmation.addEventListener('input', event => {
+            this.state.targetConfirmed = event.target.value === 'FLASH HDS';
+            this.updateUI();
+        });
     },
 
     updateUI() {
         this.elements.connectBtn.disabled = this.state.connected;
         this.elements.disconnectBtn.disabled = !this.state.connected;
-        this.elements.flashBtn.disabled = !this.state.connected || !this.state.firmwareFiles || this.state.flashing;
+        this.elements.flashBtn.disabled = !this.state.connected || !this.state.targetConfirmed ||
+            !this.state.firmwareFiles || this.state.flashing;
+    },
+
+    clearTargetConfirmation() {
+        this.state.targetConfirmed = false;
+        this.elements.targetConfirmation.value = '';
+        this.elements.targetConfirmationGroup.classList.add('hidden');
+    },
+
+    handlePortDisconnect() {
+        this.state.connected = false;
+        this.clearTargetConfirmation();
+        this.elements.deviceInfo.classList.add('hidden');
+        this.updateUI();
     },
 
     option(value, label) {
@@ -140,6 +161,7 @@ const App = {
     },
 
     async onConnect() {
+        this.clearTargetConfirmation();
         this.clearConsole();
         this.showConsole();
         this.log('Connecting to device...');
@@ -150,10 +172,12 @@ const App = {
             this.elements.macAddress.textContent = deviceInfo.macAddress;
             this.elements.flashSize.textContent = deviceInfo.flashSizeLabel || 'Unknown';
             this.elements.deviceInfo.classList.remove('hidden');
+            this.elements.targetConfirmationGroup.classList.remove('hidden');
             this.log(`Connected to ${deviceInfo.type}`, 'success');
             this.log(`MAC Address: ${deviceInfo.macAddress}`);
         } catch (error) {
             this.state.connected = false;
+            this.clearTargetConfirmation();
             this.log(error.message, 'error');
         }
         this.updateUI();
@@ -168,6 +192,7 @@ const App = {
             this.log(error.message, 'error');
         }
         this.state.connected = false;
+        this.clearTargetConfirmation();
         this.elements.deviceInfo.classList.add('hidden');
         this.updateUI();
     },
@@ -197,6 +222,10 @@ const App = {
             this.log(`Flashing failed: ${error.message}`, 'error');
         } finally {
             this.state.flashing = false;
+            await Flasher.disconnectDevice();
+            this.state.connected = false;
+            this.clearTargetConfirmation();
+            this.elements.deviceInfo.classList.add('hidden');
             this.updateUI();
         }
     },

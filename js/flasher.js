@@ -9,12 +9,32 @@ const Flasher = {
     chip: null,
     esploader: null,
     connected: false,
+    target: null,
+
+    clearTarget() {
+        this.target = null;
+    },
+
+    async assertSupportedTarget() {
+        if (!this.esploader || this.esploader.chip?.CHIP_NAME !== 'ESP32-S3') {
+            throw new Error('Unsupported target: an ESP32-S3 is required');
+        }
+        const reportedFlashSize = await this.esploader.getFlashSize();
+        const flashSize = Number.isInteger(reportedFlashSize) && reportedFlashSize <= 0x10000 ?
+            reportedFlashSize * 1024 : reportedFlashSize;
+        if (!Number.isInteger(flashSize) || flashSize < 0x800000) {
+            throw new Error('Unsupported target: at least 8 MiB of flash is required');
+        }
+        this.target = Object.freeze({ chipName: 'ESP32-S3', flashSize });
+        return this.target;
+    },
 
     /**
      * Connect to ESP32 device via Web Serial API
      * @returns {Promise<Object>} Device information
      */
     async connectDevice() {
+        this.clearTarget();
         try {
             // Check if Web Serial API is available
             if (!('serial' in navigator)) {
@@ -51,19 +71,22 @@ const Flasher = {
 
             // Connect and detect chip
             const chipDescription = await this.esploader.main();
+            const target = await this.assertSupportedTarget();
 
             // Get chip info (methods are on this.esploader.chip and take loader as parameter)
             const chipInfo = {
                 type: chipDescription,  // main() already returns the chip description
                 macAddress: await this.esploader.chip.readMac(this.esploader),
-                features: await this.esploader.chip.getChipFeatures(this.esploader)
+                features: await this.esploader.chip.getChipFeatures(this.esploader),
+                flashSize: target.flashSize,
+                flashSizeLabel: `${target.flashSize / 1024 / 1024} MiB`
             };
 
             this.connected = true;
             this.chip = this.esploader.chip;
             return chipInfo;
         } catch (error) {
-            this.connected = false;
+            await this.disconnectDevice();
             throw new Error(`Failed to connect: ${error.message}`);
         }
     },
@@ -82,6 +105,7 @@ const Flasher = {
             this.chip = null;
             this.esploader = null;
             this.connected = false;
+            this.clearTarget();
         } catch (error) {
             console.error('Error during disconnect:', error);
             // Force reset connection state even if disconnect fails
@@ -90,6 +114,7 @@ const Flasher = {
             this.chip = null;
             this.esploader = null;
             this.connected = false;
+            this.clearTarget();
         }
     },
 
@@ -161,6 +186,7 @@ const Flasher = {
                 fileArray.slice(0, index).reduce((sum, file) => sum + file.data.length, 0)
             );
 
+            await this.assertSupportedTarget();
             await this.esploader.writeFlash({
                 fileArray,
                 flashSize: flashConfig.flashSize,
@@ -208,6 +234,8 @@ const Flasher = {
         } catch (error) {
             log(`Flashing failed: ${error.message}`, 'error');
             throw error;
+        } finally {
+            this.clearTarget();
         }
     },
 
