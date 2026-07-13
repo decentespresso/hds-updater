@@ -6,7 +6,8 @@ const port = Number(process.argv[2]);
 const types = { '.css': 'text/css', '.html': 'text/html', '.js': 'text/javascript' };
 
 createServer((request, response) => {
-    const path = normalize(join('dist', request.url === '/' ? 'index.html' : request.url));
+    const requestPath = new URL(request.url, 'http://127.0.0.1').pathname;
+    const path = normalize(join('dist', requestPath === '/' ? 'index.html' : requestPath));
     response.setHeader('Content-Type', types[extname(path)] || 'application/octet-stream');
     createReadStream(path).on('error', () => {
         response.statusCode = 404;

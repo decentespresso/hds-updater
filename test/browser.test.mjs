@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const port = 4173;
 const server = spawn(process.execPath, ['test/server.mjs', String(port)], { stdio: 'ignore' });
 
 try {
+    const html = await readFile('dist/index.html', 'utf8');
+    const assets = [...html.matchAll(/(?:href|src)="((?:css|js)\/[^"]+\.(?:css|js)(?:\?v=[a-f0-9]{12})?)"/g)]
+        .map(match => match[1]);
+    assert.equal(assets.length, 8);
+    assert.ok(assets.every(asset => /\?v=[a-f0-9]{12}$/.test(asset)));
+
     await new Promise(resolve => setTimeout(resolve, 300));
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
