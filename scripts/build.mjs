@@ -1,4 +1,5 @@
-import { cp, mkdir, readdir, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { build } from 'esbuild';
 
 await rm('dist', { recursive: true, force: true });
@@ -22,3 +23,16 @@ await build({
     target: ['chrome89', 'edge89'],
     legalComments: 'none'
 });
+
+const html = await readFile('dist/index.html', 'utf8');
+const assets = [...html.matchAll(/(?:href|src)="([^"]+\.(?:css|js))"/g)].map(match => match[1]);
+const versions = await Promise.all(assets.map(async asset => [
+    asset,
+    createHash('sha256').update(await readFile(`dist/${asset}`)).digest('hex').slice(0, 12)
+]));
+const versionedHtml = versions.reduce(
+    (content, [asset, version]) => content.replaceAll(`"${asset}"`, `"${asset}?v=${version}"`),
+    html
+);
+
+await writeFile('dist/index.html', versionedHtml);
