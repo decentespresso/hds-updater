@@ -20,7 +20,7 @@ Click the **Download** button. A file will be saved to your computer — remembe
 
 ## Step 3: Load the File
 
-Click **Choose File** and select the file you just downloaded. A green message will confirm the file was loaded successfully.
+Click **Choose File** and select the file you just downloaded. The updater accepts only the exact official four-file HDS package and validates its ESP32-S3 image and partition layout before enabling flashing.
 
 <!-- screenshot: file picker with success message -->
 
@@ -29,6 +29,8 @@ Click **Choose File** and select the file you just downloaded. A green message w
 Click **Connect Device**. Your browser will show a popup asking you to pick a device — select your scale from the list and click **Connect**.
 
 You'll know it worked when the device info box appears.
+
+The updater accepts only an ESP32-S3 with at least 8 MiB flash and checks both requirements again before writing.
 
 <!-- screenshot: serial port picker popup -->
 <!-- screenshot: connected device info -->
@@ -49,3 +51,5 @@ When the message **"Flashing completed successfully!"** appears in green, you're
 | No device shows up in the popup | Try a different USB cable — some cables only charge and can't transfer data |
 | The connection fails | Unplug the USB cable, plug it back in, and try again |
 | The button says "Connect" but nothing happens | Make sure no other programs are connected to the scale (close any you're unsure about) |
+| The flash button stays disabled | Load a valid package and connect a supported scale |
+| The package is rejected | Download the official HDS release ZIP again without renaming, repacking, or adding files |

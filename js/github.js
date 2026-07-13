@@ -22,6 +22,14 @@ const GitHub = {
         };
     },
 
+    validateDownloadUrl(value) {
+        const url = new URL(value);
+        if (url.protocol !== 'https:' || url.hostname !== 'github.com') {
+            throw new Error('Release download URL is not trusted');
+        }
+        return url.href;
+    },
+
     /**
      * Fetch all releases from a GitHub repository
      * @param {string} owner - Repository owner

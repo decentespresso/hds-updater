@@ -35,6 +35,8 @@ const mockConnectedFlasher = ({ fail = false, progress = false } = {}) => {
     let resets = 0;
     flasher.connected = true;
     flasher.esploader = {
+        chip: { CHIP_NAME: 'ESP32-S3' },
+        async getFlashSize() { return 0x800000; },
         async writeFlash(options) {
             calls.push(options);
             if (progress) {
@@ -86,11 +88,23 @@ test('flashes four ordered images in one full-erase transaction and reports aggr
 
 test('passes disabled full erase once', async () => {
     const { flasher, calls } = mockConnectedFlasher();
+    const logs = [];
 
-    await flasher.flashFirmware(firmwareFiles(), null, null, { eraseAll: false });
+    await flasher.flashFirmware(firmwareFiles(), null, message => logs.push(message), { eraseAll: false });
 
     assert.equal(calls.length, 1);
     assert.equal(calls[0].eraseAll, false);
+    assert.ok(logs.includes('Full flash erase: disabled'));
+});
+
+test('logs enabled full erase before passing it to esptool-js', async () => {
+    const { flasher, calls } = mockConnectedFlasher();
+    const logs = [];
+
+    await flasher.flashFirmware(firmwareFiles(), null, message => logs.push(message), { eraseAll: true });
+
+    assert.equal(calls[0].eraseAll, true);
+    assert.ok(logs.includes('Full flash erase: enabled'));
 });
 
 test('does not reset after write or verification failure', async () => {
@@ -112,4 +126,30 @@ test('rejects an empty image array before calling esptool-js', async () => {
 
     assert.equal(calls.length, 0);
     assert.equal(resetCount(), 0);
+});
+
+test('rejects unsupported chips and flash capacity before writing', async () => {
+    const { flasher, calls } = mockConnectedFlasher();
+    flasher.esploader.chip.CHIP_NAME = 'ESP32';
+    await assert.rejects(flasher.flashFirmware(firmwareFiles()), /ESP32-S3/);
+    flasher.esploader.chip.CHIP_NAME = 'ESP32-S3';
+    flasher.esploader.getFlashSize = async () => 0x400000;
+    await assert.rejects(flasher.flashFirmware(firmwareFiles()), /8 MiB/);
+    assert.equal(calls.length, 0);
+});
+
+test('fails closed when target capacity cannot be identified', async () => {
+    const { flasher, calls } = mockConnectedFlasher();
+    flasher.esploader.getFlashSize = async () => undefined;
+    await assert.rejects(flasher.flashFirmware(firmwareFiles()), /8 MiB/);
+    assert.equal(calls.length, 0);
+});
+
+test('accepts esptool-js KiB results at 8 MiB and 16 MiB', async () => {
+    for (const capacity of [8192, 16384]) {
+        const { flasher, calls } = mockConnectedFlasher();
+        flasher.esploader.getFlashSize = async () => capacity;
+        await flasher.flashFirmware(firmwareFiles());
+        assert.equal(calls.length, 1);
+    }
 });

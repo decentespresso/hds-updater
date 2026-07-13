@@ -1,9 +1,23 @@
 {
   "name": "hds-updater",
   "private": true,
+  "engines": {
+    "node": "22.17.0"
+  },
   "scripts": {
-    "test": "node --test",
-    "lint": "node --check js/flasher.js && node --check js/fileHandler.js && node --check js/github.js && node --check js/main.js && node --check test/flasher.test.js",
-    "build": "npm run lint"
+    "test": "node --test test/*.test.js",
+    "lint": "node scripts/lint.mjs",
+    "build": "node scripts/build.mjs",
+    "test:browser": "node test/browser.test.mjs",
+    "check": "npm run lint && npm test && npm run build && npm run test:browser"
+  },
+  "dependencies": {
+    "@zip.js/zip.js": "2.8.26",
+    "esptool-js": "0.4.0",
+    "spark-md5": "3.0.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "playwright": "1.61.1"
   }
 }

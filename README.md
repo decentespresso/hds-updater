@@ -1,214 +1,91 @@
 # Half Decent Scale Updater
 
-A simple web-based tool for updating Half Decent Scale firmware directly from your browser using the Web Serial API. No installation required - just open the page in a supported browser and start updating your scale!
+The updater flashes official Half Decent Scale firmware from Chrome or Edge through Web Serial. Firmware processing stays in the browser.
 
-## Features
+Use the hosted updater at [https://decentespresso.github.io/hds-updater/](https://decentespresso.github.io/hds-updater/).
 
-- **Browser-Based**: No need to install Python, esptool, or drivers
-- **Automatic Chip Detection**: Supports ESP32-S3 with automatic detection
-- **Simple Upload**: Just download the firmware zip and upload it
-- **Clean Interface**: Decent Espresso-branded UI for easy firmware updating
-- **Real-Time Progress**: Live progress updates and detailed console logging
-- **Fast**: 921600 baud rate for quick firmware updates
+## Requirements
 
-## Browser Requirements
+- Chrome 89 or newer, or Edge 89 or newer
+- An ESP32-S3 Half Decent Scale with at least 8 MiB flash
+- A data-capable USB cable
+- An official four-file HDS firmware ZIP
 
-This tool requires a browser with Web Serial API support:
-- ✅ Google Chrome (v89+)
-- ✅ Microsoft Edge (v89+)
-- ✅ Opera (v75+)
-- ❌ Firefox (not supported)
-- ❌ Safari (not supported)
+## Update A Scale
 
-## Usage
+1. Select and download an OpenScale release.
+2. Load the downloaded ZIP into the updater.
+3. Connect the scale and select its serial port.
+4. Optionally enable full-flash erase.
+5. Flash the firmware without disconnecting power or USB.
 
-### Quick Start
+The updater checks the chip and flash capacity again immediately before writing, then disconnects after every flash attempt.
+The console records `Full flash erase: enabled` or `Full flash erase: disabled` for every attempt.
 
-### Option 1: Use GitHub Pages (Recommended)
+## Accepted Firmware Package
 
-Visit the hosted version at: **[Your GitHub Pages URL]**
+The ZIP must be at most 6 MiB and contain exactly these case-sensitive files at its root:
 
-### Option 2: Run Locally
+| File | Flash address | Maximum size |
+|------|---------------|--------------|
+| `bootloader.bin` | `0x000000` | `0x008000` |
+| `partitions.bin` | `0x008000` | `0x001000` |
+| `firmware.bin` | `0x010000` | `0x330000` |
+| `littlefs.bin` | `0x670000` | `0x180000` |
 
-**IMPORTANT**: You must serve the files via HTTP, not open them directly with `file://` protocol.
+Paths, directories, additional files, empty files, encryption, duplicate or normalized names, special files, and compression ratios above 100:1 are rejected before extraction. Cumulative uncompressed data is limited to `0x4B9000`. Flash addresses are fixed and cannot be edited.
 
-**Using the startup script:**
-```bash
-./start-server.sh
-```
+The package validator checks Espressif image magic, segment counts and metadata, truncation, the ESP32-S3 chip ID, partition ranges and overlap, and optional partition-table MD5 data. It requires the HDS 8 MiB partition layout:
 
-**Or using Python:**
-```bash
-python3 -m http.server 8000
-```
+| Role | Type/subtype | Address | Size |
+|------|--------------|---------|------|
+| NVS | data/NVS | `0x009000` | `0x005000` |
+| OTA data | data/OTA | `0x00E000` | `0x002000` |
+| OTA 0 | app/OTA 0 | `0x010000` | `0x330000` |
+| OTA 1 | app/OTA 1 | `0x340000` | `0x330000` |
+| LittleFS | data/SPIFFS | `0x670000` | `0x180000` |
+| Core dump | data/coredump | `0x7F0000` | `0x010000` |
 
-Then open **http://localhost:8000** in your browser.
-
-## Deploying to GitHub Pages
-
-1. **Push to GitHub**:
-   ```bash
-   git add .
-   git commit -m "Deploy Decent Firmware Updater"
-   git push origin main
-   ```
-
-2. **Enable GitHub Pages**:
-   - Go to your repository on GitHub
-   - Settings → Pages
-   - Source: Deploy from branch `main`
-   - Folder: `/ (root)`
-   - Save
-
-3. **Access your updater** at: `https://yourusername.github.io/hds-update/`
-
-No CORS issues when hosted on GitHub Pages!
-
-### Using the Updater:
-
-1. Make sure your browser is Chrome, Edge, or Opera (Web Serial API required)
-2. **Download firmware**: Get the latest Half Decent Scale firmware zip from [GitHub Releases](https://github.com/decentespresso/openscale/releases)
-3. **Upload firmware**: Click "Choose File" and select the downloaded zip file
-4. **Connect scale**: Connect your Half Decent Scale via USB, then click "Connect Device" and select it from the serial port picker
-5. **Flash**: Click "Flash Firmware" to begin updating
-6. Wait for the process to complete - the scale will reset automatically with new firmware
-
-### Firmware Zip File Structure
-
-Your firmware zip file should contain `.bin` files with standard naming conventions:
-
-```
-firmware.zip
-├── bootloader.bin    # Flashed at 0x1000
-├── partitions.bin    # Flashed at 0x8000
-├── boot_app0.bin     # Flashed at 0xe000 (optional)
-├── firmware.bin      # Flashed at 0x10000 (main application)
-└── littlefs.bin      # Flashed at 0x670000 (filesystem, optional)
-```
-
-**Supported file names** (case-insensitive):
-- Bootloader: `*bootloader*.bin`
-- Partitions: `*partition*.bin`
-- Boot app: `*boot_app*.bin`
-- Firmware: `*firmware*.bin`, `*app*.bin`
-- Filesystem: `*littlefs*.bin`, `*spiffs*.bin`, `*fs*.bin`
-
-### GitHub Repository Setup
-
-To flash firmware from GitHub Releases:
-
-1. Your repository must have releases with attached zip files
-2. The zip file should follow the structure above
-3. Preferably name the zip file with "firmware" in it (e.g., `esp32-firmware.zip`)
-4. Enter the repository in format: `owner/repo` (e.g., `espressif/arduino-esp32`)
-
-### Flash Memory Offsets
-
-The tool automatically assigns flash offsets based on file names (ESP32-S3 standard layout, `default_8MB.csv` partition table):
-
-| File Type | Default Offset | Notes |
-|-----------|----------------|-------|
-| Bootloader | 0x0000 | First stage bootloader (ESP32-S3) |
-| Partitions | 0x8000 | Partition table |
-| Boot App | 0xe000 | Boot app partition selector |
-| Firmware | 0x10000 | Main application |
-| Filesystem | 0x670000 | SPIFFS/LittleFS data |
-
-**Flash Settings**: DIO mode, 80MHz frequency, auto-detect size
-
-**Note**: Filesystem offset corresponds to the `default_8MB.csv` partition table from arduino-esp32. The filesystem (spiffs) partition is at 0x670000 with size 0x180000. If using a different partition scheme, verify your partition layout.
-
-## Troubleshooting
-
-### "Web Serial API is not supported" or Serial Port Picker Not Showing
-- **Most Common Issue**: You must serve files via HTTP (use `./start-server.sh` or `python3 -m http.server 8000`), NOT by opening `index.html` directly
-- Use Chrome, Edge, or Opera browser (v89 or newer) - NOT Firefox or Safari
-- Make sure you're accessing via `http://localhost:8000`, not `file://`
-- Use the test file `test-serial.html` to verify Web Serial API is working
-
-### "Failed to connect to device"
-- Check USB cable connection to your Half Decent Scale
-- Make sure no other program is using the serial port (close Arduino IDE, PlatformIO, etc.)
-- Try a different USB port or cable
-- Ensure the scale is powered on
-- Some boards may require holding the BOOT button during connection
-
-### "No releases found" or GitHub API errors
-- Verify the repository name is correct (format: `owner/repo`)
-- Check that the repository has releases
-- GitHub API has rate limits (60 requests/hour for unauthenticated users)
-
-### Flashing fails partway through
-- Try reconnecting the device
-- Ensure the firmware files are compatible with your ESP32 chip variant
-- Check USB cable quality (some cables are charge-only)
-- Hold the BOOT button during flashing if your board requires it
-
-### Scale doesn't boot after flashing
-- Verify all required files were included (bootloader, partitions, firmware)
-- Check that you downloaded the correct firmware version for the Half Decent Scale
-- Ensure flash offsets match your partition table
-- Contact Decent Espresso support if issues persist
+The browser writes `firmware.bin` only to OTA 0 and leaves OTA 1 untouched. Espressif format references: [firmware image format](https://docs.espressif.com/projects/esptool/en/latest/esp32/advanced-topics/firmware-image-format.html) and [partition tables](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html).
 
 ## Development
 
-### File Structure
+Use Node `22.17.0` and install exact locked dependencies:
 
-```
-/
-├── index.html          # Main UI and HTML structure
-├── js/
-│   ├── main.js        # Application initialization and UI event handling
-│   ├── github.js      # GitHub API integration
-│   ├── flasher.js     # ESP32 flashing logic (esptool-js wrapper)
-│   └── fileHandler.js # Zip file extraction and processing
-└── README.md          # This file
+```bash
+npm ci
+npx playwright install chromium
+npm run check
 ```
 
-### External Dependencies
+`npm run check` runs syntax checks, native regression tests, the production build, and a Chromium smoke test. Serve the tested build from `dist/`:
 
-The following libraries are loaded via CDN:
-- **esptool-js** (v0.4.0): ESP32 flashing protocol implementation
-- **JSZip** (v3.10.1): Zip file handling
+```bash
+python3 -m http.server 8000 --directory dist
+```
 
-### How It Works
+Open `http://localhost:8000`. Web Serial does not work from `file://`.
 
-1. **Firmware Selection**: User selects firmware source (GitHub or local upload)
-2. **File Processing**: Zip file is extracted and `.bin` files are identified
-3. **Device Connection**: Web Serial API establishes connection to ESP32
-4. **Chip Detection**: esptool-js detects chip type, MAC address, and features
-5. **File Preparation**: Binary files are sorted by flash offset
-6. **Flashing**: Each file is written to flash memory at its assigned offset
-7. **Reset**: Device is hard reset to boot the new firmware
+## Deployment
 
-## Security & Privacy
+The Pages workflow runs only through `workflow_dispatch`. It installs locked dependencies, runs `npm run check`, and uploads only `dist/`.
 
-- All operations happen **locally in your browser** - no data is sent to external servers
-- GitHub API calls are made directly from your browser (rate-limited to 60/hour)
-- Downloaded firmware is processed in memory and never stored permanently
-- No tracking, analytics, or telemetry
+Before production use, configure the repository's `github-pages` environment with required reviewers. A reviewer must manually approve the deployment job after the build passes.
 
-## License
+## Manual Release Checks
 
-This project is provided as-is for educational and development purposes.
+1. Run `npm ci`, `npm run check`, and `git diff --check`.
+2. Confirm the built page loads without CSP, network, or JavaScript errors in Chromium.
+3. Confirm an unsupported chip, unknown flash capacity, and flash below 8 MiB are rejected.
+4. On a physical HDS, flash an official package with full erase disabled and confirm boot plus LittleFS data.
+5. Repeat with full erase enabled and confirm boot plus LittleFS data.
+6. Confirm disconnect, reconnect, failure, port removal, and a flash attempt leave the updater disconnected.
+7. Manually approve the protected `github-pages` deployment.
 
-## Credits
+Mocked and browser checks are not physical hardware validation.
 
-Built for the [Half Decent Scale](https://github.com/decentespresso/openscale) by [Decent Espresso](https://decentespresso.com) with:
-- [esptool-js](https://github.com/espressif/esptool-js) by Espressif Systems
-- [JSZip](https://stuk.github.io/jszip/) by Stuart Knightley
-- UI styling from [Decent Espresso](https://decentespresso.com)
+## Security
 
-## Contributing
+The production build self-hosts its exact browser dependencies and enforces a restrictive Content Security Policy. CSP `connect-src` permits only `https://api.github.com`, and firmware downloads open only validated HTTPS `github.com` URLs. There is no analytics or telemetry.
 
-Contributions are welcome! Feel free to open issues or submit pull requests.
-
-## Disclaimer
-
-Firmware updates can potentially cause issues if done incorrectly. Always:
-- Verify firmware compatibility with your Half Decent Scale
-- Only use official Half Decent Scale firmware releases from [GitHub](https://github.com/decentespresso/openscale/releases)
-- Use quality USB cables and ensure the scale is powered during the update
-- Do not interrupt the update process
-
-This tool is provided as-is. For official support, please contact Decent Espresso.
+Signing, release-digest verification, OTA downloads, and automatic production deployment are outside the current hardening scope.
