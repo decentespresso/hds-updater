@@ -188,6 +188,18 @@ const Flasher = {
             );
 
             await this.assertSupportedTarget();
+            if (!eraseAll) {
+                const otaDataRegion = new Uint8Array(8);
+                const otaDataRegionView = new DataView(otaDataRegion.buffer);
+                otaDataRegionView.setUint32(0, 0xE000, true);
+                otaDataRegionView.setUint32(4, 0x2000, true);
+                log('Resetting OTA boot selection...', 'info');
+                await this.esploader.checkCommand(
+                    'erase OTA data',
+                    this.esploader.ESP_ERASE_REGION,
+                    otaDataRegion
+                );
+            }
             await this.esploader.writeFlash({
                 fileArray,
                 flashSize: flashConfig.flashSize,
