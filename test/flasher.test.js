@@ -29,7 +29,7 @@ const firmwareFiles = () => [
     { filename: 'partitions.bin', offset: 0x8000, data: new Uint8Array(20).buffer }
 ];
 
-const mockConnectedFlasher = ({ fail = false, progress = false } = {}) => {
+const mockConnectedFlasher = ({ fail = false, progress = false, eraseStatus = [0, 0] } = {}) => {
     const flasher = loadFlasher();
     const calls = [];
     const erases = [];
@@ -39,9 +39,10 @@ const mockConnectedFlasher = ({ fail = false, progress = false } = {}) => {
         ESP_ERASE_REGION: 0xD1,
         chip: { CHIP_NAME: 'ESP32-S3' },
         async getFlashSize() { return 0x800000; },
-        async checkCommand(description, command, data) {
-            assert.equal(calls.length, 0);
-            erases.push({ description, command, data: new Uint8Array(data) });
+        async command(command, data) {
+            assert.equal(calls.length, 1);
+            erases.push({ command, data: new Uint8Array(data) });
+            return [0, new Uint8Array(eraseStatus)];
         },
         async writeFlash(options) {
             calls.push(options);
@@ -92,7 +93,7 @@ test('flashes four ordered images in one full-erase transaction and reports aggr
     assert.equal(progress.at(-1).percent, 100);
 });
 
-test('erases only OTA data before a normal factory flash', async () => {
+test('erases only OTA data after a successful normal factory flash', async () => {
     const { flasher, calls, erases } = mockConnectedFlasher();
     const logs = [];
 
@@ -101,11 +102,19 @@ test('erases only OTA data before a normal factory flash', async () => {
     assert.equal(calls.length, 1);
     assert.equal(calls[0].eraseAll, false);
     assert.equal(erases.length, 1);
-    assert.equal(erases[0].description, 'erase OTA data');
     assert.equal(erases[0].command, 0xD1);
     assert.deepEqual(Array.from(erases[0].data), [0x00, 0xE0, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00]);
     assert.ok(logs.includes('Full flash erase: disabled'));
     assert.ok(logs.includes('Resetting OTA boot selection...'));
+});
+
+test('rejects a failed OTA data erase without resetting', async () => {
+    const { flasher, erases, resetCount } = mockConnectedFlasher({ eraseStatus: [1, 5] });
+
+    await assert.rejects(flasher.flashFirmware(firmwareFiles()), /OTA data erase failed with status 1/);
+
+    assert.equal(erases.length, 1);
+    assert.equal(resetCount(), 0);
 });
 
 test('logs enabled full erase before passing it to esptool-js', async () => {
@@ -120,14 +129,15 @@ test('logs enabled full erase before passing it to esptool-js', async () => {
 });
 
 test('does not reset after write or verification failure', async () => {
-    const { flasher, calls, resetCount } = mockConnectedFlasher({ fail: true });
+    const { flasher, calls, erases, resetCount } = mockConnectedFlasher({ fail: true });
 
     await assert.rejects(
-        flasher.flashFirmware(firmwareFiles(), null, null, { eraseAll: true }),
+        flasher.flashFirmware(firmwareFiles(), null, null, { eraseAll: false }),
         /write failed/
     );
 
     assert.equal(calls.length, 1);
+    assert.equal(erases.length, 0);
     assert.equal(resetCount(), 0);
 });
 

@@ -46,7 +46,7 @@ The package validator checks Espressif image magic, segment counts and metadata,
 | LittleFS | data/SPIFFS | `0x670000` | `0x180000` |
 | Core dump | data/coredump | `0x7F0000` | `0x010000` |
 
-The browser writes `firmware.bin` only to OTA 0 and leaves OTA 1 untouched. Before a normal flash, it erases only OTA data at `0x00E000`-`0x00FFFF` so the bootloader selects the new OTA 0 image without erasing NVS settings and calibration. Espressif format references: [firmware image format](https://docs.espressif.com/projects/esptool/en/latest/esp32/advanced-topics/firmware-image-format.html) and [partition tables](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html).
+The browser writes `firmware.bin` only to OTA 0 and leaves OTA 1 untouched. After a successful normal write, it erases only OTA data at `0x00E000`-`0x00FFFF` so the bootloader selects the new OTA 0 image without erasing NVS settings and calibration. Espressif format references: [firmware image format](https://docs.espressif.com/projects/esptool/en/latest/esp32/advanced-topics/firmware-image-format.html) and [partition tables](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html).
 
 ## Development
 
