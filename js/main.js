@@ -20,7 +20,7 @@ const App = {
         const ids = [
             'version-select', 'asset-select', 'asset-group', 'download-btn', 'download-status', 'zip-upload',
             'connect-btn', 'disconnect-btn', 'device-info', 'chip-type', 'mac-address', 'flash-size',
-            'flash-btn', 'progress-container', 'progress-fill', 'progress-label', 'console', 'erase-flash-checkbox'
+            'flash-btn', 'progress-container', 'progress-bar', 'progress-fill', 'progress-label', 'console', 'erase-flash-checkbox'
         ];
         this.elements = Object.fromEntries(ids.map(id => [id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()),
             document.getElementById(id)]));
@@ -221,6 +221,8 @@ const App = {
         this.elements.progressLabel.textContent = info?.currentFileName ?
             `${info.currentFile}/${info.totalFiles}: ${info.currentFileName} (${progress.toFixed(0)}%)` :
             `${progress.toFixed(0)}%`;
+        this.elements.progressBar.setAttribute('aria-valuenow', progress.toFixed(0));
+        this.elements.progressBar.setAttribute('aria-valuetext', this.elements.progressLabel.textContent);
     },
 
     showProgress() {

@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 const port = 4173;
-const server = spawn(process.execPath, ['test/server.mjs', String(port)], { stdio: 'ignore' });
-const screenshots = await mkdtemp(join(tmpdir(), 'hds-updater-'));
+const screenshotRoot = resolve(tmpdir());
+let server;
+let screenshots;
 let browser;
 
 async function assertResponsive(page, width) {
@@ -25,6 +26,8 @@ async function assertResponsive(page, width) {
 }
 
 try {
+    screenshots = await mkdtemp(join(screenshotRoot, 'hds-updater-'));
+    server = spawn(process.execPath, ['test/server.mjs', String(port)], { stdio: 'ignore' });
     const html = await readFile('dist/index.html', 'utf8');
     const assets = [...html.matchAll(/(?:href|src)="((?:css|js)\/[^"]+\.(?:css|js)(?:\?v=[a-f0-9]{12})?)"/g)]
         .map(match => match[1]);
@@ -112,6 +115,18 @@ try {
     });
     assert.equal(await page.locator('#progress-label').textContent(), '3/4: firmware.bin (42%)');
     assert.equal(await page.locator('#progress-label').evaluate(element => getComputedStyle(element).transform), 'none');
+    assert.equal(await page.locator('#progress-label').getAttribute('aria-live'), null);
+    const progressBar = page.getByRole('progressbar', { name: 'Flash firmware' });
+    assert.equal(await progressBar.getAttribute('aria-valuenow'), '42');
+    assert.equal(await progressBar.getAttribute('aria-valuetext'), '3/4: firmware.bin (42%)');
+    assert.equal(await progressBar.getAttribute('aria-live'), null);
+    const announcements = await page.locator('[aria-live], [role="log"]').allTextContents();
+    await page.evaluate(() => {
+        for (let percent = 43; percent <= 100; percent++) App.updateProgress(percent);
+    });
+    assert.equal(await page.locator('#progress-label').textContent(), '100%');
+    assert.equal(await progressBar.getAttribute('aria-valuenow'), '100');
+    assert.deepEqual(await page.locator('[aria-live], [role="log"]').allTextContents(), announcements);
     for (const width of [1440, 390, 320]) await assertResponsive(page, width);
     await page.locator('#disconnect-btn').click();
     assert.equal(await page.locator('#device-info').isVisible(), false);
@@ -128,8 +143,15 @@ try {
     assert.equal(await deniedStorage.locator('html').getAttribute('data-theme'), 'light');
     await deniedStorage.close();
     assert.deepEqual(errors, []);
-    console.log(`Browser checks passed. Screenshots: ${screenshots}`);
+    console.log('Browser checks passed.');
 } finally {
-    await browser?.close();
-    server.kill();
+    try {
+        await browser?.close();
+    } finally {
+        server?.kill();
+        if (screenshots) {
+            assert.equal(dirname(screenshots), screenshotRoot);
+            await rm(screenshots, { recursive: true, force: true });
+        }
+    }
 }
