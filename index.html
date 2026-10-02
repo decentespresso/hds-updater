@@ -3,12 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta id="theme-color" name="theme-color" content="#0d6b4f">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://api.github.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
     <title>Half Decent Scale Updater</title>
+    <script src="js/theme.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/theme.css">
 </head>
 <body>
-    <div class="page-container">
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <h1 class="brand-name">HDS updater</h1>
+            </div>
+            <div class="topbar-actions">
+                <nav class="topbar-links" aria-label="Related tools">
+                    <a class="workflow-link" href="https://decentespresso.github.io/openscale/custom-build/" target="_blank" rel="noopener noreferrer" aria-label="Open HDS custom build" title="HDS custom build">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                        <span>HDS custom build</span>
+                    </a>
+                </nav>
+                <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle color theme" aria-pressed="false" title="Toggle color theme">
+                    <svg aria-hidden="true" viewBox="0 0 68 32">
+                        <rect class="theme-toggle-track" x="1" y="1" width="66" height="30" rx="15"/>
+                        <g class="theme-toggle-stars"><circle cx="10" cy="9" r="1.2"/><circle cx="24" cy="7" r="1"/><circle cx="29" cy="21" r="1.3"/><path d="M17 18h4M19 16v4"/></g>
+                        <path class="theme-toggle-cloud" d="M43 21h14.5a3.5 3.5 0 0 0 .3-7 6 6 0 0 0-11.5-1.3A4.2 4.2 0 0 0 43 21Z"/>
+                        <g class="theme-toggle-knob">
+                            <circle class="theme-toggle-thumb" cx="16" cy="16" r="12"/>
+                            <g class="theme-toggle-sun"><circle cx="16" cy="16" r="4.5"/><path d="M16 7.5v2M16 22.5v2M7.5 16h2M22.5 16h2M10 10l1.4 1.4M20.6 20.6 22 22M10 22l1.4-1.4M20.6 11.4 22 10"/></g>
+                            <path class="theme-toggle-moon" d="M20.8 19.8A7 7 0 0 1 12.2 11a6.3 6.3 0 1 0 8.6 8.8Z"/>
+                        </g>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-container">
+        <section class="intro" aria-labelledby="page-heading">
+            <div>
+                <p class="eyebrow">Firmware updater</p>
+                <h2 id="page-heading">Half Decent Scale</h2>
+            </div>
+            <p class="intro-copy">Update your scale firmware over USB.</p>
+        </section>
+
         <div id="browser-warning" class="browser-warning hidden" role="alert">
             <strong>Unsupported Browser</strong>
             Your current browser does not support the Web Serial API, which is required for flashing firmware.
@@ -22,78 +63,91 @@
             See the <a href="GUIDE.md" target="_blank" rel="noopener noreferrer">guide</a> for details.
         </div>
 
-        <header>
-            <h1>Half Decent Scale Updater</h1>
-            <p class="description">Update your Half Decent Scale firmware directly from your browser using the Web Serial API. No software installation required.</p>
-        </header>
+        <div class="layout">
+            <div class="stack">
+                <section class="section" aria-labelledby="firmware-heading">
+                    <div class="section-head">
+                        <p class="step-label">Step 1</p>
+                        <h3 id="firmware-heading">Firmware</h3>
+                    </div>
+                    <div class="download-row">
+                        <div class="input-group">
+                            <label for="version-select">Version</label>
+                            <select id="version-select" disabled>
+                                <option value="">Loading releases...</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="asset-group" hidden>
+                            <label for="asset-select">PCB variant</label>
+                            <select id="asset-select"></select>
+                        </div>
+                        <button id="download-btn" class="button special" type="button" disabled aria-describedby="version-select">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            Download
+                        </button>
+                    </div>
+                    <div id="download-status" class="download-status" role="status" aria-live="polite"></div>
+                    <div class="input-group" id="zip-upload-group">
+                        <label for="zip-upload">Firmware ZIP</label>
+                        <input type="file" id="zip-upload" accept=".zip">
+                    </div>
+                </section>
 
-        <!-- Firmware -->
-        <section class="section">
-            <h2>Firmware</h2>
-
-            <div class="download-row">
-                <div class="input-group">
-                    <label for="version-select">Version</label>
-                    <select id="version-select" disabled>
-                        <option value="">Loading releases...</option>
-                    </select>
+                <section class="section" aria-labelledby="connection-heading">
+                    <div class="section-head">
+                        <p class="step-label">Step 2</p>
+                        <h3 id="connection-heading">Device connection</h3>
+                    </div>
+                    <div class="button-group">
+                        <button id="connect-btn" class="button special" type="button">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5M9 8V2M15 8V2M7 8h10v4a5 5 0 0 1-10 0Z"/></svg>
+                            Connect device
+                        </button>
+                        <button id="disconnect-btn" class="button secondary" type="button" disabled>Disconnect</button>
+                    </div>
+                    <div id="device-info" class="device-info hidden">
+                        <div><strong>Chip:</strong> <span id="chip-type">-</span></div>
+                        <div><strong>MAC Address:</strong> <span id="mac-address">-</span></div>
+                        <div><strong>Flash Size:</strong> <span id="flash-size">-</span></div>
+                    </div>
+                </section>
+            </div>
+            <section class="section flash-section" aria-labelledby="flash-heading">
+                <div class="section-head">
+                    <p class="step-label">Step 3</p>
+                    <h3 id="flash-heading">Flash firmware</h3>
                 </div>
-                <div class="input-group" id="asset-group" hidden>
-                    <label for="asset-select">PCB Variant</label>
-                    <select id="asset-select"></select>
+                <button id="flash-btn" class="button special big" type="button" disabled>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+                    Flash firmware
+                </button>
+                <div class="advanced-checkbox-container">
+                    <input type="checkbox" id="erase-flash-checkbox" aria-describedby="erase-warning">
+                    <label for="erase-flash-checkbox">Advanced: Erase entire flash before update</label>
                 </div>
-                <button id="download-btn" class="button special" disabled aria-describedby="version-select">Download</button>
-            </div>
-            <div id="download-status" class="download-status"></div>
-
-            <div class="input-group" id="zip-upload-group">
-                <label for="zip-upload">After downloading, select the zip file:</label>
-                <input type="file" id="zip-upload" accept=".zip">
-            </div>
-        </section>
-
-        <!-- Device Connection -->
-        <section class="section">
-            <h2>Device Connection</h2>
-            <div class="button-group">
-                <button id="connect-btn" class="button special">Connect Device</button>
-                <button id="disconnect-btn" class="button secondary" disabled>Disconnect</button>
-            </div>
-            <div id="device-info" class="device-info hidden">
-                <div><strong>Chip:</strong> <span id="chip-type">-</span></div>
-                <div><strong>MAC Address:</strong> <span id="mac-address">-</span></div>
-                <div><strong>Flash Size:</strong> <span id="flash-size">-</span></div>
-            </div>
-        </section>
-
-        <!-- Flash Controls -->
-        <section class="section">
-            <h2>Flash Firmware</h2>
-            <button id="flash-btn" class="button special big" disabled>Flash Firmware</button>
-
-            <!-- Advanced Options -->
-            <div class="advanced-checkbox-container">
-                <input type="checkbox" id="erase-flash-checkbox">
-                <label for="erase-flash-checkbox">Advanced: Erase Entire Flash Before Update</label>
-            </div>
-            <table class="offset-table">
-                <thead><tr><th>File</th><th>Flash address</th></tr></thead>
-                <tbody>
-                    <tr><td>bootloader.bin</td><td>0x000000</td></tr>
-                    <tr><td>partitions.bin</td><td>0x008000</td></tr>
-                    <tr><td>firmware.bin</td><td>0x010000</td></tr>
-                    <tr><td>littlefs.bin</td><td>0x670000</td></tr>
-                </tbody>
-            </table>
-
-            <div id="progress-container" class="progress-container hidden">
-                <div class="progress-bar">
-                    <div id="progress-fill" class="progress-fill">0%</div>
+                <p id="erase-warning" class="erase-warning">Full erase removes settings and calibration.</p>
+                <details class="flash-details">
+                    <summary>Flash addresses</summary>
+                    <table class="offset-table">
+                        <thead><tr><th>File</th><th>Flash address</th></tr></thead>
+                        <tbody>
+                            <tr><td>bootloader.bin</td><td>0x000000</td></tr>
+                            <tr><td>partitions.bin</td><td>0x008000</td></tr>
+                            <tr><td>firmware.bin</td><td>0x010000</td></tr>
+                            <tr><td>littlefs.bin</td><td>0x670000</td></tr>
+                        </tbody>
+                    </table>
+                </details>
+                <div id="progress-container" class="progress-container hidden">
+                    <div id="progress-bar" class="progress-bar" role="progressbar" aria-labelledby="flash-heading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div id="progress-fill" class="progress-fill"></div>
+                        <span id="progress-label" class="progress-label">0%</span>
+                    </div>
                 </div>
-            </div>
-            <div id="console" class="console hidden"></div>
-        </section>
-    </div>
+                <div id="console" class="console hidden" role="log" aria-label="Device activity"></div>
+            </section>
+        </div>
+    </main>
 
     <script src="js/dependencies.js" defer></script>
     <script src="js/browser.js" defer></script>
